@@ -1,0 +1,11 @@
+---
+commands:
+hooks:
+  after-install-all:
+  - "bundler-trivy"
+load_paths:
+  bundler-trivy:
+  - "/run/media/davidjberube/38a1faa2-3e04-4fc4-abfd-381ad3ef5a85/projects/content-sites/practicalrubygems.com/attached_source/trivy_bundler_plugin/lib"
+plugin_paths:
+  bundler-trivy: "/run/media/davidjberube/38a1faa2-3e04-4fc4-abfd-381ad3ef5a85/projects/content-sites/practicalrubygems.com/attached_source/trivy_bundler_plugin"
+sources:
