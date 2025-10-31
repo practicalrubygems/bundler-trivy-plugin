@@ -12,7 +12,7 @@ A Bundler plugin that automatically integrates [Trivy](https://trivy.dev/) secur
 - **CVE Ignore List**: Temporary ignore vulnerabilities with expiration dates
 - **Multiple Output Formats**: Terminal (default), JSON, and compact modes
 - **Detailed Reporting**: Clear vulnerability summaries with fix recommendations
-- **Zero Dependencies**: Lightweight plugin with minimal runtime dependencies
+- **Zero Gem Dependencies**: Lightweight plugin with minimal runtime dependencies - none besides other than trivy.
 
 ## Quick Start
 
