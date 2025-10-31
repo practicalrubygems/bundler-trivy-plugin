@@ -239,7 +239,8 @@ module Bundler
           if ignore["expires"]
             begin
               # Handle both string and Date objects
-              ignore["expires"].is_a?(Date) ? ignore["expires"] : Date.parse(ignore["expires"].to_s)
+              expires = ignore["expires"]
+              expires.is_a?(Date) ? expires : Date.parse(expires.to_s)
             rescue ArgumentError
               errors << "Invalid expiration date for #{ignore["id"]}: #{ignore["expires"]}"
             end
