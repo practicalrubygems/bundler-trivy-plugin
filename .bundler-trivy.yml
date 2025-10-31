@@ -1,0 +1,33 @@
+# .bundler-trivy.yml
+# Configuration for bundler-trivy-plugin
+# See: https://github.com/your-org/bundler-trivy-plugin#configuration
+
+# Enable or disable scanning entirely
+enabled: true
+
+# Determine when to fail bundle install based on findings
+fail_on:
+  critical: true # Fail on CRITICAL vulnerabilities
+  high: false # Fail on HIGH vulnerabilities
+  medium: false # Fail on MEDIUM vulnerabilities
+  low: false # Fail on LOW vulnerabilities
+
+# Output formatting options
+output:
+  format: terminal # terminal, json, or compact
+  compact: false # Show only CRITICAL and HIGH
+
+# Scanning behavior
+scanning:
+  timeout: 120 # Maximum seconds for Trivy scan
+  # Filter to specific severity levels (empty = all)
+  severity_filter:
+    - CRITICAL
+    - HIGH
+
+# Suppress specific vulnerabilities with justification
+# All ignores require a 'reason' and should include 'expires'
+ignores:
+  - id: CVE-2023-12345
+    reason: "Vulnerability in code path we don't execute"
+    expires: 2025-12-31
