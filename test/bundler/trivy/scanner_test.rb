@@ -23,6 +23,11 @@ module Bundler
         assert_equal "/path/to/project", scanner.project_root
       end
 
+      def test_initialize_with_invalid_project_root
+        scanner = Scanner.new("")
+        assert_equal "", scanner.project_root
+      end
+
       def test_initialize_with_config
         config = Config.new
         scanner = Scanner.new("/path/to/project", config)
@@ -78,6 +83,33 @@ module Bundler
         end
       end
 
+      def test_scan_raises_error_on_partial_json
+        # Mock Open3.capture3 to return partial JSON
+        mock_output = ['{"Results": [{"Target": "Gemfile.lock", "Vulnerabilities": ', "", OpenStruct.new(exitstatus: 0)]
+
+        Open3.stub :capture3, mock_output do
+          error = assert_raises(ScanError) do
+            @scanner.scan
+          end
+
+          assert_match(/Invalid JSON output from Trivy/, error.message)
+          assert_match(/unexpected end of input/, error.message)
+        end
+      end
+
+      def test_scan_raises_error_on_json_with_extra_content
+        # Mock Open3.capture3 to return JSON with extra non-JSON content
+        mock_output = ['{"Results": []} extra content', "", OpenStruct.new(exitstatus: 0)]
+
+        Open3.stub :capture3, mock_output do
+          error = assert_raises(ScanError) do
+            @scanner.scan
+          end
+
+          assert_match(/Invalid JSON output from Trivy/, error.message)
+        end
+      end
+
       def test_scan_raises_error_on_timeout
         # Mock Open3.capture3 to raise Timeout::Error
         Open3.stub :capture3, ->(*_args, **_kwargs) { raise Timeout::Error } do
@@ -92,7 +124,7 @@ module Bundler
 
       def test_scan_returns_scan_result_on_success
         # Mock successful Trivy output with no vulnerabilities
-        mock_json = { "Results" => [] }.to_json
+        mock_json = {"Results" => []}.to_json
         mock_output = [mock_json, "", OpenStruct.new(exitstatus: 0)]
 
         Open3.stub :capture3, mock_output do
@@ -104,7 +136,7 @@ module Bundler
 
       def test_scan_handles_exit_code_1_with_vulnerabilities
         # Exit code 1 means vulnerabilities found (success case)
-        mock_json = mock_trivy_output([sample_vulnerability])
+        mock_json = mock_trivy_output([sample_vulnerability(cve_id: "CVE-2023-99992")])
         mock_output = [mock_json, "", OpenStruct.new(exitstatus: 1)]
 
         Open3.stub :capture3, mock_output do
@@ -115,23 +147,25 @@ module Bundler
       end
 
       def test_scan_uses_configured_timeout
-        config = Config.new
         with_env("BUNDLER_TRIVY_TIMEOUT", "300") do
           config = Config.new
           scanner = Scanner.new(@temp_dir, config)
 
-          # Verify timeout is passed to Open3.capture3
-          Open3.stub :capture3, lambda { |*_args, **kwargs|
-            assert_equal 300, kwargs[:timeout]
-            [mock_trivy_output([]), "", OpenStruct.new(exitstatus: 0)]
+          # Verify timeout is used in Timeout.timeout block
+          # This is tested indirectly by ensuring the scan completes
+          Timeout.stub :timeout, lambda { |timeout, &block|
+            assert_equal 300, timeout
+            block.call
           } do
-            scanner.scan
+            Open3.stub :capture3, [mock_trivy_output([]), "", OpenStruct.new(exitstatus: 0)] do
+              scanner.scan
+            end
           end
         end
       end
 
       def test_scan_applies_severity_filter
-        create_sample_config(@temp_dir, "scanning" => { "severity_filter" => %w[CRITICAL HIGH] })
+        create_sample_config(@temp_dir, "scanning" => {"severity_filter" => %w[CRITICAL HIGH]})
         ENV["BUNDLE_GEMFILE"] = File.join(@temp_dir, "Gemfile")
 
         config = Config.new
@@ -195,11 +229,21 @@ module Bundler
         assert_includes args, @temp_dir
       end
 
+      def test_build_trivy_args_with_empty_severity_filter
+        config = Config.new
+        config.stub :severity_filter, [] do
+          scanner = Scanner.new(@temp_dir, config)
+          args = scanner.send(:build_trivy_args)
+
+          refute_includes args, "--severity"
+        end
+      end
+
       def test_parse_json_returns_hash_for_valid_json
         scanner = Scanner.new(@temp_dir)
         result = scanner.send(:parse_json, '{"key": "value"}')
 
-        assert_equal({ "key" => "value" }, result)
+        assert_equal({"key" => "value"}, result)
       end
 
       def test_parse_json_returns_empty_hash_for_empty_string

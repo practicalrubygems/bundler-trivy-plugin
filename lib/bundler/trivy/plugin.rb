@@ -49,8 +49,12 @@ module Bundler
 
         # Check if Trivy binary is available in PATH
         unless scanner.trivy_available?
-          Bundler.ui.warn "Trivy not found, skipping scan"
-          Bundler.ui.info "Install: https://trivy.dev/docs/getting-started/installation/"
+          begin
+            Bundler.ui.warn "Trivy not found, skipping scan"
+            Bundler.ui.info "Install: https://trivy.dev/docs/getting-started/installation/"
+          rescue
+            # Ignore UI errors
+          end
           return
         end
 
@@ -64,7 +68,7 @@ module Bundler
 
           # Exit with error code if vulnerabilities exceed configured thresholds
           handle_exit_code(results, config)
-        rescue StandardError => e
+        rescue => e
           Bundler.ui.warn "Trivy scan failed: #{e.message}"
           Bundler.ui.debug e.backtrace.join("\n") if ENV["DEBUG"]
         end

@@ -10,7 +10,6 @@ require "bundler/trivy/vulnerability"
 require "bundler/trivy/reporter"
 
 require "minitest/autorun"
-require "minitest/pride"
 require "tmpdir"
 require "fileutils"
 require "ostruct"
@@ -66,8 +65,15 @@ module TestHelper
       "ignores" => []
     }
 
-    config = default_config.merge(content)
-    File.write(File.join(dir, ".bundler-trivy.yml"), config.to_yaml)
+    config = deep_merge_config(default_config, content)
+    File.write(File.join(dir, ".bundler-trivy.yml"), YAML.dump(config))
+  end
+
+  # Deep merge two hashes
+  def deep_merge_config(hash1, hash2)
+    hash1.merge(hash2) do |_, v1, v2|
+      (v1.is_a?(Hash) && v2.is_a?(Hash)) ? deep_merge_config(v1, v2) : v2
+    end
   end
 
   # Mock Trivy JSON output for testing

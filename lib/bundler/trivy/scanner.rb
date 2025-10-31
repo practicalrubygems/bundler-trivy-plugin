@@ -121,7 +121,7 @@ module Bundler
 
         # Add severity filtering if configured
         severity_filter = @config.severity_filter
-        args += ["--severity", severity_filter.join(",")] if severity_filter && severity_filter.any?
+        args += ["--severity", severity_filter.join(",")] if severity_filter&.any?
 
         args << @project_root
         args

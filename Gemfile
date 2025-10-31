@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-plugin 'bundler-trivy'
+plugin "bundler-trivy"
 source "https://rubygems.org"
 
 # Specify your gem's dependencies in bundler-trivy-plugin.gemspec

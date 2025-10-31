@@ -100,7 +100,7 @@ module Bundler
       end
 
       def test_severity_filter_from_config_file
-        create_sample_config(@temp_dir, "scanning" => { "severity_filter" => %w[CRITICAL HIGH] })
+        create_sample_config(@temp_dir, "scanning" => {"severity_filter" => %w[CRITICAL HIGH]})
         config = Config.new
         assert_equal %w[CRITICAL HIGH], config.severity_filter
       end
@@ -169,7 +169,7 @@ module Bundler
 
       def test_cve_ignored_returns_true_for_ignored
         ignores = [
-          { "id" => "CVE-2023-12345", "reason" => "Test ignore" }
+          {"id" => "CVE-2023-12345", "reason" => "Test ignore"}
         ]
         create_sample_config(@temp_dir, "ignores" => ignores)
         config = Config.new
@@ -178,7 +178,7 @@ module Bundler
 
       def test_cve_ignored_respects_expiration_date
         ignores = [
-          { "id" => "CVE-2023-12345", "reason" => "Test ignore", "expires" => "2020-01-01" }
+          {"id" => "CVE-2023-12345", "reason" => "Test ignore", "expires" => "2020-01-01"}
         ]
         create_sample_config(@temp_dir, "ignores" => ignores)
         config = Config.new
@@ -188,7 +188,7 @@ module Bundler
       def test_cve_ignored_respects_future_expiration
         future_date = (Date.today + 30).to_s
         ignores = [
-          { "id" => "CVE-2023-12345", "reason" => "Test ignore", "expires" => future_date }
+          {"id" => "CVE-2023-12345", "reason" => "Test ignore", "expires" => future_date}
         ]
         create_sample_config(@temp_dir, "ignores" => ignores)
         config = Config.new
@@ -196,7 +196,7 @@ module Bundler
       end
 
       def test_validate_rejects_invalid_severity_levels
-        create_sample_config(@temp_dir, "scanning" => { "severity_filter" => %w[INVALID CRITICAL] })
+        create_sample_config(@temp_dir, "scanning" => {"severity_filter" => %w[INVALID CRITICAL]})
 
         error = assert_raises(ConfigError) do
           Config.new
@@ -206,7 +206,7 @@ module Bundler
       end
 
       def test_validate_rejects_timeout_below_minimum
-        create_sample_config(@temp_dir, "scanning" => { "timeout" => 5 })
+        create_sample_config(@temp_dir, "scanning" => {"timeout" => 5})
 
         error = assert_raises(ConfigError) do
           Config.new
@@ -217,7 +217,7 @@ module Bundler
 
       def test_validate_rejects_invalid_expiration_date
         ignores = [
-          { "id" => "CVE-2023-12345", "reason" => "Test", "expires" => "invalid-date" }
+          {"id" => "CVE-2023-12345", "reason" => "Test", "expires" => "invalid-date"}
         ]
         create_sample_config(@temp_dir, "ignores" => ignores)
 
@@ -230,7 +230,7 @@ module Bundler
 
       def test_validate_requires_reason_for_ignores
         ignores = [
-          { "id" => "CVE-2023-12345" }
+          {"id" => "CVE-2023-12345"}
         ]
         create_sample_config(@temp_dir, "ignores" => ignores)
 
@@ -243,15 +243,15 @@ module Bundler
 
       def test_validate_accepts_valid_configuration
         create_sample_config(@temp_dir, {
-                               "enabled" => true,
-                               "scanning" => {
-                                 "timeout" => 120,
-                                 "severity_filter" => %w[CRITICAL HIGH]
-                               },
-                               "ignores" => [
-                                 { "id" => "CVE-2023-12345", "reason" => "Valid ignore", "expires" => "2025-12-31" }
-                               ]
-                             })
+          "enabled" => true,
+          "scanning" => {
+            "timeout" => 120,
+            "severity_filter" => %w[CRITICAL HIGH]
+          },
+          "ignores" => [
+            {"id" => "CVE-2023-12345", "reason" => "Valid ignore", "expires" => "2025-12-31"}
+          ]
+        })
 
         # Should not raise
         config = Config.new
@@ -265,6 +265,31 @@ module Bundler
           config = Config.new
           assert config.skip_scan?, "ENV variable should override config file"
         end
+      end
+
+      def test_load_config_handles_invalid_yaml
+        # Create a file with invalid YAML
+        config_path = File.join(@temp_dir, ".bundler-trivy.yml")
+        File.write(config_path, "invalid: yaml: content: [")
+
+        config = Config.new
+        # Should not raise and should return empty config
+        assert_equal({}, config.instance_variable_get(:@file_config))
+      end
+
+      def test_load_config_handles_missing_file_permissions
+        config_path = File.join(@temp_dir, ".bundler-trivy.yml")
+        File.write(config_path, "enabled: false")
+
+        # Remove read permissions
+        File.chmod(0o000, config_path)
+
+        config = Config.new
+        # Should not raise and should return empty config
+        assert_equal({}, config.instance_variable_get(:@file_config))
+      ensure
+        # Restore permissions for cleanup
+        File.chmod(0o644, config_path) if File.exist?(config_path)
       end
     end
   end

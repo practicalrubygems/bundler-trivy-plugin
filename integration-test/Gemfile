@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-plugin 'bundler-trivy', path: '../'
+plugin "bundler-trivy", path: "../"
 source "https://rubygems.org"
 
 gem "rails", "~> 7.0.0"

@@ -27,14 +27,14 @@ module Bundler
       end
 
       def test_vulnerabilities_returns_empty_array_for_no_results
-        data = { "Results" => [] }
+        data = {"Results" => []}
         result = ScanResult.new(data, @config)
 
         assert_equal [], result.vulnerabilities
       end
 
       def test_vulnerabilities_extracts_from_trivy_data
-        data = JSON.parse(mock_trivy_output([sample_vulnerability]))
+        data = JSON.parse(mock_trivy_output([sample_vulnerability(cve_id: "CVE-2023-99999")]))
         result = ScanResult.new(data, @config)
 
         assert_equal 1, result.vulnerabilities.count
@@ -48,7 +48,7 @@ module Bundler
         data = JSON.parse(mock_trivy_output([vuln1, vuln2]))
 
         # Configure to ignore CVE-2023-11111
-        ignores = [{ "id" => "CVE-2023-11111", "reason" => "Test ignore" }]
+        ignores = [{"id" => "CVE-2023-11111", "reason" => "Test ignore"}]
         create_sample_config(@temp_dir, "ignores" => ignores)
 
         ENV["BUNDLE_GEMFILE"] = File.join(@temp_dir, "Gemfile")
@@ -62,7 +62,7 @@ module Bundler
       end
 
       def test_by_severity_groups_vulnerabilities
-        critical = sample_vulnerability(severity: "CRITICAL")
+        critical = sample_vulnerability(severity: "CRITICAL", cve_id: "CVE-2023-99998")
         high = sample_vulnerability(severity: "HIGH", cve_id: "CVE-2023-99999")
 
         data = JSON.parse(mock_trivy_output([critical, high]))
@@ -75,7 +75,7 @@ module Bundler
       end
 
       def test_critical_vulnerabilities_filters_correctly
-        critical = sample_vulnerability(severity: "CRITICAL")
+        critical = sample_vulnerability(severity: "CRITICAL", cve_id: "CVE-2023-99997")
         high = sample_vulnerability(severity: "HIGH", cve_id: "CVE-2023-99999")
 
         data = JSON.parse(mock_trivy_output([critical, high]))
@@ -88,7 +88,7 @@ module Bundler
       end
 
       def test_high_vulnerabilities_filters_correctly
-        critical = sample_vulnerability(severity: "CRITICAL")
+        critical = sample_vulnerability(severity: "CRITICAL", cve_id: "CVE-2023-99996")
         high = sample_vulnerability(severity: "HIGH", cve_id: "CVE-2023-99999")
 
         data = JSON.parse(mock_trivy_output([critical, high]))
@@ -101,21 +101,21 @@ module Bundler
       end
 
       def test_has_vulnerabilities_returns_true_when_present
-        data = JSON.parse(mock_trivy_output([sample_vulnerability]))
+        data = JSON.parse(mock_trivy_output([sample_vulnerability(cve_id: "CVE-2023-99995")]))
         result = ScanResult.new(data, @config)
 
         assert result.has_vulnerabilities?
       end
 
       def test_has_vulnerabilities_returns_false_when_none
-        data = { "Results" => [] }
+        data = {"Results" => []}
         result = ScanResult.new(data, @config)
 
         refute result.has_vulnerabilities?
       end
 
       def test_has_critical_vulnerabilities_returns_true_when_present
-        critical = sample_vulnerability(severity: "CRITICAL")
+        critical = sample_vulnerability(severity: "CRITICAL", cve_id: "CVE-2023-99994")
         data = JSON.parse(mock_trivy_output([critical]))
         result = ScanResult.new(data, @config)
 
@@ -123,7 +123,7 @@ module Bundler
       end
 
       def test_has_critical_vulnerabilities_returns_false_when_none
-        high = sample_vulnerability(severity: "HIGH")
+        high = sample_vulnerability(severity: "HIGH", cve_id: "CVE-2023-99993")
         data = JSON.parse(mock_trivy_output([high]))
         result = ScanResult.new(data, @config)
 
@@ -160,7 +160,7 @@ module Bundler
       def test_handles_nil_vulnerabilities_in_results
         data = {
           "Results" => [
-            { "Target" => "Gemfile.lock", "Vulnerabilities" => nil }
+            {"Target" => "Gemfile.lock", "Vulnerabilities" => nil}
           ]
         }
         result = ScanResult.new(data, @config)
@@ -171,12 +171,31 @@ module Bundler
       def test_handles_empty_vulnerabilities_in_results
         data = {
           "Results" => [
-            { "Target" => "Gemfile.lock", "Vulnerabilities" => [] }
+            {"Target" => "Gemfile.lock", "Vulnerabilities" => []}
           ]
         }
         result = ScanResult.new(data, @config)
 
         assert_equal [], result.vulnerabilities
+      end
+
+      def test_handles_multiple_targets
+        data = {
+          "Results" => [
+            {
+              "Target" => "Gemfile.lock",
+              "Vulnerabilities" => [sample_vulnerability(cve_id: "CVE-2023-11111")]
+            },
+            {
+              "Target" => "vendor/bundle",
+              "Vulnerabilities" => [sample_vulnerability(cve_id: "CVE-2023-22222")]
+            }
+          ]
+        }
+        result = ScanResult.new(data, @config)
+
+        assert_equal 2, result.vulnerabilities.count
+        assert_equal ["CVE-2023-11111", "CVE-2023-22222"], result.vulnerabilities.map(&:id)
       end
     end
   end

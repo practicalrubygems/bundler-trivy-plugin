@@ -74,7 +74,7 @@ module Bundler
       #   config.fail_on_critical? # => true
       def fail_on_critical?
         env_bool("BUNDLER_TRIVY_FAIL_ON_CRITICAL",
-                 file_value(%w[fail_on critical], ci_environment?))
+          file_value(%w[fail_on critical], ci_environment?))
       end
 
       # Determines if the plugin should exit with error on HIGH severity vulnerabilities.
@@ -86,7 +86,7 @@ module Bundler
       #   config.fail_on_high? # => true
       def fail_on_high?
         env_bool("BUNDLER_TRIVY_FAIL_ON_HIGH",
-                 file_value(%w[fail_on high], false))
+          file_value(%w[fail_on high], false))
       end
 
       # Determines if the plugin should exit with error on ANY vulnerabilities.
@@ -111,7 +111,7 @@ module Bundler
       # @return [Boolean] true if compact output is enabled
       def compact_output?
         env_bool("BUNDLER_TRIVY_COMPACT",
-                 file_value(%w[output compact], ci_environment?))
+          file_value(%w[output compact], ci_environment?))
       end
 
       # Determines if output should be in JSON format.
@@ -160,7 +160,7 @@ module Bundler
       #   config.trivy_timeout # => 300
       def trivy_timeout
         ENV.fetch("BUNDLER_TRIVY_TIMEOUT",
-                  file_value(%w[scanning timeout], 120)).to_i
+          file_value(%w[scanning timeout], 120)).to_i
       end
 
       # Returns the list of ignored CVEs from configuration.
@@ -238,7 +238,8 @@ module Bundler
         ignored_cves.each do |ignore|
           if ignore["expires"]
             begin
-              Date.parse(ignore["expires"])
+              # Handle both string and Date objects
+              ignore["expires"].is_a?(Date) ? ignore["expires"] : Date.parse(ignore["expires"].to_s)
             rescue ArgumentError
               errors << "Invalid expiration date for #{ignore["id"]}: #{ignore["expires"]}"
             end
@@ -284,8 +285,8 @@ module Bundler
         end
 
         config
-      rescue StandardError => e
-        Bundler.ui.warn "Failed to load config: #{e.message}"
+      rescue => e
+        Bundler.ui.warn "Failed to load config (#{config_path}): #{e.message}"
         {}
       end
 
@@ -306,14 +307,16 @@ module Bundler
 
       def deep_merge(hash1, hash2)
         hash1.merge(hash2) do |_, v1, v2|
-          v1.is_a?(Hash) && v2.is_a?(Hash) ? deep_merge(v1, v2) : v2
+          (v1.is_a?(Hash) && v2.is_a?(Hash)) ? deep_merge(v1, v2) : v2
         end
       end
 
       def expired?(ignore_entry)
         return false unless ignore_entry["expires"]
 
-        expiration_date = Date.parse(ignore_entry["expires"])
+        # Handle both string and Date objects
+        expires = ignore_entry["expires"]
+        expiration_date = expires.is_a?(Date) ? expires : Date.parse(expires.to_s)
         Date.today > expiration_date
       rescue ArgumentError
         # Handle invalid date format, treat as not expired to be safe

@@ -123,12 +123,16 @@ module Bundler
         puts bold("Recommended Actions:")
         puts
 
-        fixable.group_by(&:package_name).each do |_pkg, vulns|
+        fixable.group_by(&:package_name).each do |pkg, vulns|
           # Get all fixed versions from all vulnerabilities for this package
           all_versions = vulns.flat_map(&:fixed_versions).compact.uniq
-          # Find the minimum version that fixes all vulns (safest upgrade path)
-          _recommended_version = all_versions.min_by { |v| Gem::Version.new(v) } if all_versions.any?
-          puts "  Update #{_pkg}: bundle update #{_pkg}"
+          # Find the maximum version that fixes all vulns (safest upgrade path)
+          recommended_version = all_versions.max_by { |v| Gem::Version.new(v) } if all_versions.any?
+          if recommended_version
+            puts "  Update #{pkg} to #{recommended_version}: bundle update #{pkg}"
+          else
+            puts "  Update #{pkg}: bundle update #{pkg}"
+          end
         end
 
         puts
@@ -167,7 +171,7 @@ module Bundler
       end
 
       def severity_order(severity)
-        { "CRITICAL" => 0, "HIGH" => 1, "MEDIUM" => 2, "LOW" => 3, "UNKNOWN" => 4 }[severity] || 99
+        {"CRITICAL" => 0, "HIGH" => 1, "MEDIUM" => 2, "LOW" => 3, "UNKNOWN" => 4}[severity] || 99
       end
 
       # Color helpers
