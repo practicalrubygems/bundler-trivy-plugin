@@ -276,12 +276,12 @@ module Bundler
 
         return {} unless File.exist?(config_path)
 
-        config = YAML.safe_load_file(config_path, permitted_classes: [Date]) || {}
+        config = safe_load_yaml(config_path) || {}
 
         # Load global config and merge
         global_config_path = File.expand_path("~/.bundle/trivy.yml")
         if File.exist?(global_config_path)
-          global = YAML.safe_load_file(global_config_path, permitted_classes: [Date]) || {}
+          global = safe_load_yaml(global_config_path) || {}
           config = deep_merge(global, config)
         end
 
@@ -289,6 +289,15 @@ module Bundler
       rescue => e
         Bundler.ui.warn "Failed to load config (#{config_path}): #{e.message}"
         {}
+      end
+
+      def safe_load_yaml(path)
+        yaml_content = File.read(path)
+        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.1.0")
+          YAML.safe_load(yaml_content, permitted_classes: [Date])
+        else
+          YAML.safe_load(yaml_content, [Date])
+        end
       end
 
       def config_file_path
