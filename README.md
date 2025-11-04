@@ -37,16 +37,19 @@ sudo apt-get install trivy
 
 ### 2. Install the Plugin
 
-**From source** (currently):
-```bash
-gem build bunder-trivy.gemspec
-bundle plugin install bunder-trivy --source .
-```
 
-**Coming soon - from RubyGems**:
+**From RubyGems**:
 ```bash
 gem install bunder-trivy
 bundle plugin install bunder-trivy
+```
+
+**From source**:
+```bash
+git clone https://github.com/practicalrubygems/bundler-trivy-plugin
+cd bundler-trivy-plugin
+gem build
+bundle plugin install bunder-trivy --source .
 ```
 
 ### 3. Verify Installation
