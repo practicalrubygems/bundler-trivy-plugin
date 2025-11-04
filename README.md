@@ -33,6 +33,14 @@ sudo apt-get update
 sudo apt-get install trivy
 ```
 
+**NixOS/home-manager**:
+```nix
+# In configuration.nix or home.nix
+environment.systemPackages = [ pkgs.trivy ];
+# Or for home-manager:
+home.packages = [ pkgs.trivy ];
+```
+
 **Other platforms**: See [Trivy Installation Guide](https://trivy.dev/docs/getting-started/installation/)
 
 ### 2. Install the Plugin
